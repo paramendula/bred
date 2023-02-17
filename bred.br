@@ -1,0 +1,39 @@
+$config {
+    entry: "main"
+}$
+
+/* /@>./a.out
+ * Please, enter anything: John Fucker!
+ * You entered: John Fucker!
+ * /@>
+ */
+
+import cstd
+
+proc main(i32 argc, u8** argv) -> i32 {
+    let buffer: u8[256] = { 0 };
+    let hbuffer: u8* = stdlib::malloc(/*comptime*/ sizeof buffer);
+
+    let random_char: u8 = 'n';
+    let lol: f32 = 0.127;
+
+    if hbuffer == cstd::NULL {
+        stdio.puts("Unable to allocate hbuffer(256).");
+        return 0;
+    } 
+
+
+    $defer stdlib.free(hbuffer);$
+
+    stdio::fputs("Please, enter anything: ", stdio::stdin);
+    stdio::gets(buffer);
+    string::memcpy(hbuffer, buffer, /*comptime*/ sizeof buffer);
+
+    stdio::printf("You entered: %s\n", hbuffer);
+
+    
+    // **hbuffer** gets deallocated by *free* here
+    
+
+    return 0;
+}
