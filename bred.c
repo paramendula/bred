@@ -86,38 +86,37 @@ typedef struct _TokenArray {
 void print_tokens(TokenArray *tarr) {
     printf("Token Array [%zu/%zu]:\n", tarr->sLength, tarr->sCap);
     for(size_t i = 0; i < tarr->sLength; i++) {
+        if(i % 8 == 0)
+            putchar('\n');
         Token tok = tarr->tTokens[i];
 
-        printf("[%d %p]\n", tok.eType, tok.strData);
-
         if(tok.eType > 0) {
-            printf("Casual '%c'\n", (char)tok.eType);
-        } else if(tok.eType == TokLiteralCharacter) {
-            printf("Character '%c'\n", (char)tok.strData);
+            putchar(tok.eType);
         } else {
+            putchar(' ');
             switch(tok.eType) {
                 case TokIdentifier:
-                    fputs("Identifier ", stdout);
+                    printf("Id[%s]", tok.strData);
                     break;
                 case TokMacro:
-                    fputs("Macro ", stdout);
+                    printf("Macro");
                     break;
-                case TokComment:
-                    fputs("Comment ", stdout);
-                    break;
-                case TokLiteralString:
-                    fputs("String ", stdout);
-                    break;
-                case TokLiteralInteger:
-                    fputs("Integer ", stdout);
+                case TokLiteralCharacter:
+                    printf("Char[%c]", (char)tok.strData);
                     break;
                 case TokLiteralFloat:
-                    fputs("Float ", stdout);
+                    printf("Float[%s]", tok.strData);
+                    break;
+                case TokLiteralInteger:
+                    printf("Int[%s]", tok.strData);
+                    break;
+                case TokLiteralString:
+                    printf("Str[%s]", tok.strData);
+                    break;
+                case TokComment:
+                    printf("Comment");
                     break;
             }
-            fputs("--------------------\n", stdout);
-            fputs(tok.strData, stdout);
-            fputs("\n-------------------------------\n", stdout);
         }
     }
 }
@@ -312,9 +311,8 @@ int parse_tokchar(char **strInputText, TokenArray *tarrOutput) {
         curr_ch = *(++*strInputText);
     } else {
         ch = curr_ch;
+        curr_ch = *(++*strInputText);
     }
-
-    curr_ch = *(++*strInputText);
 
     if(curr_ch == '\'') {
         goto ptch_done;
@@ -488,6 +486,223 @@ int parse_tokens(char *strInputText, TokenArray *tarrOutput) {
 
     return 0;
 }
+
+typedef struct _Path {
+    size_t sLength;
+    char **ids;
+} Path;
+
+typedef struct _ImportPath {
+    Path path;
+    char import_all;
+    size_t sLength;
+    Path **children;
+} ImportPath;
+
+typedef struct _GenericDecl {
+    size_t sLength;
+    struct _Type *generics;
+} GenericDecl;
+
+typedef struct _Type {
+    Path path;
+    size_t sLength;
+    struct _Type *generics;
+} Type;
+
+typedef struct _Argument {
+    char *name;
+    Type type;
+} Argument;
+
+typedef enum _eStatASTType {
+    Nothing = 0,
+    StatImport,
+    StatAlias,
+    StatVariable,
+    StatProcedure,
+    StatModule,
+    StatStructure,
+    StartEnum,
+    StatBlock,
+} eStatASTType;
+
+typedef enum _eExprASTType {
+    Nothing = 100,
+    ExprInfixOp,
+    ExprPrefixOp,
+    ExprProcCall,
+    ExprIfClause,
+    ExprWhileLoop,
+    ExprForLoop,
+    ExprSwitchClause,
+    ExprBlock,
+    ExprStatement, // only inside StatProcBlock
+} eExprASTType;
+
+typedef struct _StatAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+} StatAST;
+
+typedef struct _ExprAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+} ExprAST;
+
+typedef struct _LASTItem { // not last item!!
+    struct _LASTItem *before, *after;
+    int type; // expr if >= 100
+} LASTItem;
+
+typedef struct _LinkedAST {
+    size_t sLength;
+    LASTItem *first, *last;
+} LinkedAST;
+
+typedef struct _StatImportAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    ImportPath ipath;
+} StatImportAST;
+
+typedef struct _StatAliasAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    char *id;
+    Type aliased;
+};
+
+typedef enum _eVarDeclType {
+    vdtLet,
+    vdtVar,
+    vdtConst,
+} eVarDeclType;
+
+typedef struct _StatVariableAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    eVarDeclType dtype;
+    char *id;
+    ExprAST *init;
+} StatVariableAST;
+
+typedef struct _StructMember {
+    char *id;
+    Type type;
+} StructMember;
+
+typedef struct _StatStructureAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    size_t sLength;
+    GenericDecl gen;
+    StructMember *members;
+} StatStructureAST;
+
+typedef struct _EnumMember {
+    char *id;
+    char *value;
+} EnumMember;
+
+typedef struct _StatEnumAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    size_t sLength;
+    EnumMember *members;
+} StatEnumAST;
+
+typedef struct _StatBlockAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    size_t sLength;
+    LinkedAST last;
+} StatBlockAST;
+
+typedef struct _ProcBlockAST {
+    size_t sLength;
+    LinkedAST last;
+} ProcBlockAST;
+
+typedef struct _StatModuleAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    char *id;
+    StatBlockAST block;
+} StatModuleAST;
+
+typedef struct _StatProcedureAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    char is_extern;
+    char *id;
+    size_t sLength;
+    Argument *args; // parameters
+    GenericDecl gen;
+    Type ret_type;
+    ProcBlockAST pblock; // does not exist if .sLength == 0; if .sLength > 0 when is_extern then error
+} StatProcedureAST;
+
+typedef struct _ExprInfixOpAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    char *id;
+    ExprAST *left, *right;
+} ExprInfixOpAST;
+
+typedef struct _ExprPrefixOpAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    char *id;
+    ExprAST *right;
+} ExprPrefixOpAST;
+
+typedef struct _ExprProcCallAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    char *id;
+    size_t sLength;
+    ExprAST *args;
+} ExprProcCallAST;
+
+typedef struct _ExprIfClauseAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    ExprAST *condition;
+    char is_single, is_expr;
+    LASTItem *smth;
+} ExprIfClauseAST;
+
+typedef struct _ExprWhileLoopAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    ExprAST *condition, *step;
+} ExprWhileLoopAST;
+
+typedef struct _ExprForLoopAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    ExprAST *begin, *cond, *step, *doing;
+} ExprForLoopAST;
+
+typedef struct _SwitchMember {
+    char *const_cond;
+    LinkedAST last;
+} SwitchMember;
+
+typedef struct _ExprSwitchClauseAST {
+    struct _LASTItem *before, *after;
+    eExprASTType eType;
+    ExprAST *cond;
+    size_t sLength;
+    SwitchMember *members;
+} ExprSwitchClauseAST;
+
+typedef struct _ExprBlockAST {
+    struct _LASTItem *before, *after;
+    eStatASTType eType;
+    LinkedAST last;
+} ExprBlockAST;
 
 void translate(FILE *in, FILE *out) {
     long infsize;

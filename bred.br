@@ -8,26 +8,69 @@ $config {
  * /@>
  */
 
-import cstd
+import cstd::*;
 
-proc main(i32 argc, u8** argv) -> i32 {
-    let buffer: u8[256] = { 0 };
-    let hbuffer: u8* = stdlib::malloc(/*comptime*/ sizeof buffer);
+// purely compile-time
+alias String = char*;
 
-    let random_char: u8 = 'n';
-    let lol: f32 = 0.127;
+mod something {
 
-    if hbuffer == cstd::NULL {
+    proc print(text: char*) -> void {
+        stdio::fputs(char, stdio::stdin);
+    }
+
+    mod override {
+        proc printline(number: int) {
+            stdio::printf("%d", number);
+        }
+
+        proc printline() {
+            stdio::putchar('\n');
+        }
+
+        proc printline(text: string) {
+            something::print(text);
+            // super::print(text);
+            printline;
+        }
+    }
+
+    mod generic {
+        struct Pair<T> {
+            one: T,
+            two: T,
+        };
+    }
+
+    proc test() {
+        let intpair: generic::Pair<int> = generic::Pair<int> { 
+            one: 4,
+            two: 23,
+        };
+        override::printline(intpair.one);
+        use override;
+        printline("I am a nigger.");
+    }
+}
+
+proc main(argc: int, argv: char**) -> int {
+    let buffer: char[256] = { 0 };
+    let hbuffer: char* = stdlib::malloc(/*comptime*/ sizeof buffer);
+
+    let random_char: char = 'n';
+    let lol: double = 0.127;
+
+    if (hbuffer == cstd::NULL) {
         stdio.puts("Unable to allocate hbuffer(256).");
         return 0;
     } 
 
 
-    $defer stdlib.free(hbuffer);$
+    $defer stdlib.free hbuffer;$
 
     stdio::fputs("Please, enter anything: ", stdio::stdin);
-    stdio::gets(buffer);
-    string::memcpy(hbuffer, buffer, /*comptime*/ sizeof buffer);
+    stdio::gets buffer;
+    string::memcpy(hbuffer, buffer, /*comptime*/ sizeof(buffer));
 
     stdio::printf("You entered: %s\n", hbuffer);
 
