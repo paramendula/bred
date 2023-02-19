@@ -1,0 +1,143 @@
+Macro -> Into below
+Comment -> Ignore
+
+All module is Block without curly braces
+
+Statement
+    Import
+    Alias
+    Variable
+    Procedure
+    Module
+    Structure
+    Enum
+    Block
+        ProcedureBlock
+
+Expression
+    InfixOperation
+    PrefixOperation
+    ProcedureCall
+    IfClause
+    WhileLoop
+    ForLoop
+    SwitchClause
+    ExprBlock
+
+
+Expression + ';' == ExprStatement
+Only inside ProcedureBlock
+
+If Block ends with expression it becomes
+expression
+
+Path:
+    Id::Id::Id
+
+Type:
+    Path to struct
+    Path to enum
+    Path to builtin
+
+Type:
+    Type[const uint] - stack allocated array
+
+ImportPath:
+    Path::*
+    Path::{
+        ImportPath,
+        Id
+    }
+
+Import:
+    import ImportPath
+
+Variable:
+    [extern]
+    [let|const|var] Id: Type;
+    [let|const|var] Id: Type = Expression;
+    
+Procedure:
+    [extern]
+    proc Id(arg1: Type, arg2: Type, ...) -> Type;
+    proc Id(...) -> Type ProcedureBlock
+    proc Id<Type1, Type2, ...>(...) -> Type ProcedureBlock
+
+Module:
+    mod Block
+
+Structure:
+    struct Id {
+        Id: Type,
+        Id: Type,
+        ...
+    }
+    struct Id<Type1, Type2> {
+        Id: Type1,
+        Id: Type2,
+        ...
+    }
+
+Enum:
+    enum Id {
+        Id1,
+        Id2,
+        Id3
+    }
+    enum Id {
+        Id1 = 5,
+        Id2 = -3,
+        Id3,
+    }
+
+Block:
+    {
+        Statement1,
+        Statement2,
+        ...
+    }
+
+ProcedureBlock:
+    {
+        Statement1,
+        ExprStatement1,
+        ....
+    }
+    return required if return is void
+
+InfixOperation:
+    Expression |Path to proc| Expression
+
+PrefixOperation:
+    |Path to proc| Expression
+
+ProcedureCall:
+    |Path to proc|(arg1, arg2, ...)
+    args are expression except for
+        this procedure call:
+    |path to proc| arg1, arg2, arg3;
+
+IfClause:
+    if (Expression)
+        Block
+
+    if (Expression)
+        ExprBlock
+
+WhileLoop:
+    while (Expression)
+        Block || ExprBlock || ;
+
+ForLoop:
+    for(Statement;Expression;Statement)
+        Block || ExprBlock || ;
+
+SwitchClause:
+    switch(Path) {
+        case PathToConst or Literal:
+        Statement
+        ....
+        default:
+        Statement
+    }
+    

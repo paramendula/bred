@@ -506,8 +506,7 @@ typedef struct _GenericDecl {
 
 typedef struct _Type {
     Path path;
-    size_t sLength;
-    struct _Type *generics;
+    GenericDecl gen;
 } Type;
 
 typedef struct _Argument {
@@ -676,7 +675,8 @@ typedef struct _ExprIfClauseAST {
 typedef struct _ExprWhileLoopAST {
     struct _LASTItem *before, *after;
     eExprASTType eType;
-    ExprAST *condition, *step;
+    ExprAST *condition;
+    LASTItem *step;
 } ExprWhileLoopAST;
 
 typedef struct _ExprForLoopAST {
@@ -703,6 +703,20 @@ typedef struct _ExprBlockAST {
     eStatASTType eType;
     LinkedAST last;
 } ExprBlockAST;
+
+void last_free_insides(LinkedAST *last) {
+    LASTItem *li = last->first;
+    while(li) {
+        LASTItem *next = li->before;
+
+        
+        li = next;
+    }
+}
+
+int parse_ast(TokenArray *tarr, LinkedAST *last) {
+
+}
 
 void translate(FILE *in, FILE *out) {
     long infsize;
