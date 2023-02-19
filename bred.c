@@ -704,6 +704,7 @@ typedef struct _ExprBlockAST {
     LinkedAST last;
 } ExprBlockAST;
 
+// ... TODO ...
 void last_free_insides(LinkedAST *last) {
     LASTItem *li = last->first;
     while(li) {
@@ -714,8 +715,73 @@ void last_free_insides(LinkedAST *last) {
     }
 }
 
-int parse_ast(TokenArray *tarr, LinkedAST *last) {
+int last_append(LinkedAST *last, LASTItem *ast) {
 
+    return 0;
+}
+
+// spit in my face
+
+int parse_ast_id(size_t *tid, TokenArray *tarr, LASTItem **buff) {
+
+    return 0;
+}
+
+int parse_ast(TokenArray *tarr, LinkedAST *lastbuff) {
+    size_t tid = 0, limit = tarr->sLength;
+    char is_failure = 0;
+
+    LinkedAST last = (LinkedAST) {
+        .sLength = 0,
+        .first = NULL,
+        .last = NULL,
+    };
+
+    while(tid < limit) {
+        Token tok = tarr->tTokens[tid];
+
+        LASTItem *new_ast = NULL;
+        int result = 0;
+
+        switch(tok.eType) {
+            case TokIdentifier:
+                result = parse_ast_id(&tid, tarr, &new_ast);
+                break;
+            case TokMacro:
+                break;
+            case TokComment:
+                break;
+            case TokLiteralCharacter:
+                break;
+            case TokLiteralFloat:
+                break;
+            case TokLiteralInteger:
+                break;
+            case TokLiteralString:
+                break;
+        }
+
+        // ... TODO ...
+
+        if(result == -1) {
+            is_failure = 1;
+            break;
+        } else if(result == 1) { // new ast generated
+            if(last_append(&last, new_ast)) {
+                is_failure = 1;
+                break;
+            }
+        }
+    }
+
+    if(is_failure) {
+        last_free_insides(&last);
+        return -1;
+    }
+
+    *lastbuff = last;
+
+    return 0;
 }
 
 void translate(FILE *in, FILE *out) {
@@ -747,7 +813,16 @@ void translate(FILE *in, FILE *out) {
         return;
     }
 
-    print_tokens(&tokens);
+   LinkedAST last;
+
+   if(parse_ast(&tokens, &last)) {
+        free(input_text);
+        tokarr_free_insides(&tokens);
+        puts("Error. AST parse failure.");
+        return;
+   }
+
+    // ... TODO ...
 
     // freeing zone:
 
@@ -756,6 +831,9 @@ void translate(FILE *in, FILE *out) {
     // freeing the tokens
     tokarr_free_insides(&tokens);
     free(tokens.tTokens);
+
+    // freeing the linked abstract syntax tree(shit)
+    last_free_insides(&last);
 
     puts("Successufully translated.");
 }
