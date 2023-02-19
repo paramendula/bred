@@ -570,7 +570,7 @@ typedef struct _StatAliasAST {
     eStatASTType eType;
     char *id;
     Type aliased;
-};
+} StatAliasAST;
 
 typedef enum _eVarDeclType {
     vdtLet,
@@ -715,14 +715,328 @@ void last_free_insides(LinkedAST *last) {
     }
 }
 
+inline static void path_free_insides(Path *p) {
+    free(p->ids);
+}
+
+inline static void generic_free_insides(GenericDecl *gen) {
+    if(gen->sLength) {
+        for(size_t i = 0; i < gen->sLength; i++)
+            type_free_insides(&gen->generics[i]);
+        free(&gen->generics);
+    }
+}
+
+inline static void type_free_insides(Type *t) {
+    generic_free_insides(&t->gen);
+    path_free_insides(&t->path);
+}
+
+inline static void argument_free_insides(Argument *arg) {
+    type_free_insides(&arg->type);
+}
+
 int last_append(LinkedAST *last, LASTItem *ast) {
 
     return 0;
 }
 
 // spit in my face
+// as it is a copy-paste
+// if your eyes start to bleed
+// then god is here, try to plead
+
+int parse_path(size_t *tid, TokenArray *tarr, Path *buff) {
+
+    return 0;
+}
+
+int parse_type(size_t *tid, TokenArray *tarr, Type *buff) {
+
+    return 0;
+}
+
+int parse_generic(size_t *tid, TokenArray *tarr, GenericDecl *buff) {
+
+    return 0;
+}
+
+// 0 if done
+// 1 if next available
+// -1 if error
+int parse_parameter(size_t *tid, TokenArray *tarr, Argument *buff) {
+
+    return 0;
+}
+
+int parse_ast_procblock(size_t *trid, TokenArray *tarr, ProcBlockAST *buff) {
+
+    return 0;
+}
+
+int parse_ast_proc(size_t *tid, TokenArray *tarr, LASTItem **buff) {
+    Token tok = tarr->tTokens[*tid++];
+
+    StatProcedureAST *spa = (StatProcedureAST *)malloc(sizeof(*spa));
+
+    if(!spa) {
+        puts("Not enough memory for procedure statement ast.");
+        return -1;
+    }
+
+    char is_extern = 0;
+
+    if(!strcmp(tok.strData, "extern")) {
+        is_extern = 1;
+    } else if(!strcmp(tok.strData, "proc")) {
+        goto pap_proc;
+    }
+
+    if(*tid == tarr->sLength) {
+        puts("Extern keyword found. But the file ended.");
+        return -1;
+    }
+
+    // in case if extern
+    tok = tarr->tTokens[*tid++];
+
+    if(tok.eType != TokIdentifier) {
+        puts("Not an identifier after the 'extern' keyword.");
+        return -1;
+    }
+
+    if(strcmp(tok.strData, "proc")) {
+        puts("Extern keyword found. But not proc after it.");
+        return -1;
+    }
+
+    pap_proc:
+    if(*tid == tarr->sLength) {
+        puts("The file eneded during proc parse.");
+        return -1;
+    }
+
+    tok = tarr->tTokens[*tid++];
+
+    if(tok.eType != TokIdentifier) {
+        puts("Not an identifier after the 'proc' keyword.");
+        return -1;
+    }
+
+    char *id = tok.strData;
+
+    if(*tid == tarr->sLength) {
+        puts("The file eneded during proc parse[2].");
+        return -1;
+    }
+
+    tok = tarr->tTokens[*tid++];
+
+    GenericDecl gen = { 0 };
+
+    size_t args_count = 0, args_cap = 2;
+    Argument *args = NULL;
+
+    if(tok.eType == '<') {
+        if(parse_generic(&tid, tarr, &gen)) {
+            puts("Error during generic decl parse in proc.");
+            return -1;
+        }
+
+        if(*tid == tarr->sLength) {
+            puts("The file eneded during proc parse[3].");
+            return -1;
+        }
+
+        tok = tarr->tTokens[*tid++];
+    }  
+    
+    if (tok.eType != '(') {
+        puts("Wrong identifier found instead of parameters list(proc).");
+        generic_free_insides(&gen);
+        return -1;
+    }
+
+    if ((*tid)++ == tarr->sLength) {
+        puts("Parameters list unended(proc).");
+        generic_free_insides(&gen);
+        return -1;
+    }
+
+    args = (Argument *)malloc(sizeof(*args) * 2);
+
+    if(!args) {
+        puts("Not enough memory for parameters list(proc).");
+        generic_free_insides(&gen);
+        return -1;
+    }
+
+    int result = parse_parameter(tid, tarr, args + args_count);
+
+    while(result != 0) {
+        if(result == -1) {
+            puts("Error during parameters parse(proc).");
+            generic_free_insides(&gen);
+            free(args);
+            return -1;
+        }
+        args_count++;
+        if(args_count == args_cap) {
+            args_cap = args_cap + (args_cap >> 1);
+            Argument *new_args = (Argument *)realloc(args, sizeof(*new_args) * args_cap);
+            if(!new_args) {
+                puts("Not enough memory for parameters list(proc)[x2]");
+                generic_free_insides(&gen);
+                free(args);
+                return -1;
+            } 
+            args = new_args;
+        }
+        result = parse_parameters(tid, tarr, args + args_count);
+    }
+
+    if(*tid == tarr->sLength) {
+        puts("The file eneded during proc parse[4].");
+        generic_free_insides(&gen);
+        free(args);
+        return -1;
+    }
+
+    tok = tarr->tTokens[*tid++];
+
+    // yeah, that's the way to check two tokens
+    // don't worry, I will write pretty parser, but with bred PL
+
+    if(tok.eType != '-') {
+        puts("Wrong token after parmeters list(proc).");
+        generic_free_insides(&gen);
+        free(args);
+        return -1;
+    }
+
+    if(*tid == tarr->sLength) {
+        puts("The file eneded during proc parse[5].");
+        generic_free_insides(&gen);
+        free(args);
+        return -1;
+    }
+
+    tok = tarr->tTokens[*tid++];
+
+    if(tok.eType != '>') {
+        puts("Wrong token after parameters list(proc)[2; >].");
+        generic_free_insides(&gen);
+        free(args);
+        return -1;
+    }
+
+    Type ret = { 0 };
+
+    if(parse_type(tid, tarr, &ret)) {
+        puts("Coldn't parse proc return type.");
+        generic_free_insides(&gen);
+        free(args);
+        return -1;
+    }
+
+    if(*tid == tarr->sLength) {
+        puts("The file eneded during proc parse[6].");
+        generic_free_insides(&gen);
+        free(args);
+        type_free_insides(&ret);
+        return -1;
+    }
+
+    tok = tarr->tTokens[*tid++];
+
+    if(is_extern) {
+        if(tok.eType != ';') {
+            puts("Wrong token after proc type, proc is extern.");
+            generic_free_insides(&gen);
+            free(args);
+            type_free_insides(&ret);
+            return -1;
+        }
+    } else {
+        if(tok.eType != ';') {
+            puts("Wrong token after proc type, procblock expected.");
+            generic_free_insides(&gen);
+            free(args);
+            type_free_insides(&ret);
+            return -1;
+        }
+    }
+
+    if(*tid++ == tarr->sLength) {
+        puts("The file eneded during proc parse[7].");
+        generic_free_insides(&gen);
+        free(args);
+        type_free_insides(&ret);
+        return -1;
+    }
+
+    ProcBlockAST pb = { 0 };
+
+    if(parse_ast_procblock(tid, tarr, &pb)) {
+        puts("Couldn't parse procblock after proc signature.");
+        generic_free_insides(&gen);
+        free(args);
+        type_free_insides(&ret);
+        return -1;
+    }
+
+    *spa = (StatProcedureAST) {
+        .after = NULL,
+        .before = NULL,
+        .args = args,
+        .eType = StatProcedure,
+        .gen = gen,
+        .id = id,
+        .is_extern = is_extern,
+        .pblock = pb,
+        .ret_type = ret,
+        .sLength = args_count,
+    };    
+
+    return 0;
+}
 
 int parse_ast_id(size_t *tid, TokenArray *tarr, LASTItem **buff) {
+    Token tok = tarr->tTokens[*tid];
+
+    if(!strcmp(tok.strData, "proc")) {
+        return parse_ast_proc(tid, tarr, buff);
+    } else if(!strcmp(tok.strData, "extern")) {
+        
+    } else if(!strcmp(tok.strData, "mod")) {
+
+    } else if(!strcmp(tok.strData, "const")) {
+
+    } else if(!strcmp(tok.strData, "let")) {
+
+    } else if(!strcmp(tok.strData, "var")) {
+
+    } else if(!strcmp(tok.strData, "const")) {
+        
+    } else if(!strcmp(tok.strData, "struct")) {
+        
+    } else if(!strcmp(tok.strData, "enum")) {
+
+    } else if(!strcmp(tok.strData, "alias")) {
+
+    } else if(!strcmp(tok.strData, "if")) {
+
+    } else if(!strcmp(tok.strData, "while")) {
+
+    } else if(!strcmp(tok.strData, "for")) {
+
+    } else if(!strcmp(tok.strData, "switch")) {
+
+    } else if(!strcmp(tok.strData, "import")) {
+
+    } else {
+
+    }
 
     return 0;
 }
@@ -772,6 +1086,8 @@ int parse_ast(TokenArray *tarr, LinkedAST *lastbuff) {
                 break;
             }
         }
+
+        tid++;
     }
 
     if(is_failure) {
