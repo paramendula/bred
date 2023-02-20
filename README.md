@@ -1,6 +1,6 @@
 ## BRED
 
-**Bred is a programming language and powerful tool for working with other programming languages.**
+**Bred is a programming language which uses C as an interemediate language.**
 
 **Currently under active development. No documentation will be available until first full release.**
 
