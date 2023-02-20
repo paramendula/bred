@@ -1,6 +1,6 @@
 ## BRED
 
-**My pet project. Bred is a programming language. Translates to C.**
+**Bred is a programming language and powerful tool for working with other programming languages.**
 
 **Currently under active development. No documentation will be available until first full release.**
 
